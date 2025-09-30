@@ -1,7 +1,7 @@
 # Shougang-Jingtang-Data-Center-Backend-Development
-老师致力于流程智能制造以及智能钢厂，是行业大牛。该项目前期在实验室完成，后期到公司调研、分析需求合理性，最终在厂里进行部署。
+老师致力于全流程一体化智能制造以及智能钢厂。该项目前期在实验室完成，后期到公司调研、分析需求合理性，最终在厂里进行部署。
 
-我放了一些开发过程中学习的知识点，在项目笔记中。
+项目需要保密，我放了一些开发过程中学习的知识点。
 
 
 
@@ -12,11 +12,6 @@
 # 1、调度模块/project/tools/cpp/procctl.cpp
 
 ## 思路：
-
-- ==直接看72行源码！==
-
-
-## :red_circle:用到的知识
 
 ```cpp
 int execl(const char *path, const char *arg, ...);
@@ -57,7 +52,7 @@ int main(int argc,char *argv[])
 
 
 
-# 2、进程心跳/project/tools/cpp/heartbeat.cpp
+# 2、心跳进程/project/tools/cpp/heartbeat.cpp
 
 ## 思路
 
@@ -80,70 +75,6 @@ int main(int argc,char *argv[])
 ==//把共享内存从当前进程分离。==
 
 
-
-## 知识点
-
-#### **:red_circle:shmget函数**
-
-该函数用于创建/获取共享内存。
-
-- int shmget(key_t key, size_t size, int shmflg);
-
-- key       共享内存的键值，是一个整数（typedef unsigned int key_t），一般采用十六进制，例如0x5005，不同共享内存的key不能相同。
-
-- size      共享内存的大小，以字节为单位。
-
-- shmflg  共享内存的访问权限，与文件的权限一样，例如0666|IPC_CREAT，0666表示全部用户对它可读写，IPC_CREAT表示如果共享内存不存在，就创建它。
-
-- 返回值：成功返回共享内存的id（一个非负的整数），失败返回-1（系统内存不足、没有权限）
-
-- 用**ipcs -m**可以查看系统的共享内存，包括：键值（key），共享内存id（shmid），拥有者（owner），权限（perms），大小（bytes）。
-
-- 用**ipcrm -m** 共享内存id可以手工删除共享内存，如下：
-
-
-#### :red_circle:shmat函数
-
-该函数用于把共享内存连接到当前进程的地址空间。
-
-- void *shmat(int shmid, const void *shmaddr, int shmflg);
-
-- shmid          由shmget()函数返回的共享内存标识。
-
-- shmaddr    指定共享内存连接到当前进程中的地址位置，通常填0，表示让系统来选择共享内存的地址。
-
-- shmflg         标志位，通常填0。
-
-- 调用成功时返回共享内存起始地址，失败返回(void*)-1。
-
-
-#### :red_circle:shmdt函数
-
-该函数用于将共享内存从当前进程中分离，相当于shmat()函数的反操作。
-
-- int shmdt(const void *shmaddr);
-
-- shmaddr     shmat()函数返回的地址。
-
-- 调用成功时返回0，失败时返回-1。
-
-
-#### :red_circle:shmctl函数
-
-该函数用于操作共享内存，最常用的操作是删除共享内存。
-
-- int shmctl(int shmid, int command, struct shmid_ds *buf);
-
-- shmid          shmget()函数返回的共享内存id。
-
-- command   操作共享内存的指令，如果要删除共享内存，填IPC_RMID。
-
-- buf               操作共享内存的数据结构的地址，如果要删除共享内存，填0。
-
-- 调用成功时返回0，失败时返回-1。
-
-
-
 ## 一些细节
 
 :red_circle:第一个问题：当程序异常退出如kill -9 或 段错误，那么EXIT没机会执行，共享内存会残留(这(异常退出)是不可避免地)。因此在程序执行开始在共享内存寻找空位置的时候，共享内存中残留了进程的信息并且进程编号与当前进程相同，就重用这个旧位置而不再寻找共位置了！
@@ -154,7 +85,7 @@ int main(int argc,char *argv[])
 
 
 
-# 3、守护模块/project/tools/cpp/checkproc.cpp
+# 3、守护模块进程/project/tools/cpp/checkproc.cpp
 
 ## 思路
 
@@ -172,29 +103,10 @@ int main(int argc,char *argv[])
 
 ​    ==//把共享内存从当前进程中分离。==
 
-## 知识点
-
-:red_circle:判断进程是否存在的方法：向进程发送信号0，返回-1则说明进程已经不存在了。
-
-```cpp
-int iret=kill(m_shm[ii].pid,0);
-if(iret==-1)
-{
-    logfile.write("进程pid=%d(%s)已经不存在。\n",shm[ii].pid,shm[ii].pname);
-    memset(&shm[ii],0,sizeof(struct st_procinfo));   // 从共享内存中删除该记录。
-    continue;
-}
-```
-
-:red_circle:demo02.cpp细节，cpactive pactive要设置为全局变量，否则exit(0);的时候不会调用pactive的析构。
-
-​		**exit()表示终止进程，不会调用局部对象的**[**析构函数**](https://so.csdn.net/so/search?q=析构函数&spm=1001.2101.3001.7020)**，只调用全局对象的析构函数**。
-
-
 
 ## 一些细节
 
-:red_circle:demo02.cpp细节，cpactive pactive要设置为全局变量，否则exit(0);的时候不会调用pactive的析构。
+:red_circle:cpactive pactive要设置为全局变量，否则exit(0);的时候不会调用pactive的析构。
 
 ​		**exit()表示终止进程，不会调用局部对象的**[**析构函数**](https://so.csdn.net/so/search?q=析构函数&spm=1001.2101.3001.7020)**，只调用全局对象的析构函数**。
 
@@ -228,31 +140,17 @@ if(iret==-1)
 
 
 
-## 知识点
-
-:red_circle:如果想在操作系统启动时自动启动所有服务程序可以在/etc/rc.local中配置。
-
-```rc.local
-# 启动守护模块,建议在/etc/rc.local中配置，以超级用户的身份启动。
-/project/tools/bin/procctl 10 /project/tools/bin/checkproc /tmp/log/checkproc.log
-
-# 启动首钢京唐数据汇聚平台的服务程序
-su - xianwu -c "/project/idc/cpp/start.sh"
-```
-
-​	增加可执行权限 chmod +x /etc/rc.d/rc.local   或者  chmod 777 /etc/rc.d/rc.local
-
 ## 代码
 
 在start.sh中配置脚本
 
 ## 一些细节
 
-守护进程启动在==超级用户权限==下自动启动。原因是1.守护进程太重要了，不小心删掉麻烦就大了。2.一台机器只要启动一次守护进程，并且没有重启的必要。
+守护进程启动在==超级用户权限==下自动启动。2.一台机器只要启动一次守护进程，并且没有重启的必要。
 
 
 
-# 5、两个小工具
+# 5、清理工具
 
 ## 5.1 清理文件/project/tools/cpp/deletefiles.cpp
 
@@ -290,7 +188,6 @@ su - xianwu -c "/project/idc/cpp/start.sh"
 
 ​    ==//遍历目录中的文件，如果是历史数据文件，压缩它。==
 
-### 知识点
 
 ```cpp
 //压缩文件，使用操作系统的gzip命令。
@@ -537,9 +434,6 @@ bool cftpclient::put(const string &localfilename,const string &remotefilename,co
 
 ​    ==// }==
 
-#### 知识点
-
-复习matchstr函数和getxmlbuffer函数。
 
 本次代码备份在：/project/tools/cpp/bak/ftpgetfiles.cpp1
 
@@ -621,13 +515,7 @@ bool cftpclient::put(const string &localfilename,const string &remotefilename,co
 
 ​		根据ftp文件下载模块的代码进行修改得到。
 
-#### 知识点
 
-int remove(const char *__filename)是删除。
-
-bool idc::renamefile(const std::string &srcfilename, const std::string &dstfilename)
-
-​	重命名文件，类似Linux系统的mv命令
 
 #### 一些细节
 
@@ -719,11 +607,8 @@ bool idc::renamefile(const std::string &srcfilename, const std::string &dstfilen
 
 ​	}
 
-#### 知识点
 
-​	==多进程编程==
 
-​	==主进程子进程的信号处理函数FathEXIT、ChldEXIT==
 
 #### 一些细节
 
@@ -755,9 +640,6 @@ bool idc::renamefile(const std::string &srcfilename, const std::string &dstfilen
 
 ​	}
 
-#### 知识点
-
-​	多进程编程
 
 ### 文件上传模块（二）
 
@@ -913,7 +795,6 @@ while(已读取字节数 ! = 文件大小)
 
 #### 1.fileserver.cpp5思路
 
-##### 知识点
 
 ​	多路复用
 
@@ -923,9 +804,7 @@ while(已读取字节数 ! = 文件大小)
 
 #### 2.tcpputfiles.cpp思路最终版本
 
-##### 知识点
 
-I/O多路复用：边发送边监听确认报文。
 
 ##### 一些细节
 
@@ -977,7 +856,7 @@ int main(int argc,char* argv[])
 
 以上完成的TCP通讯是同步通讯的。
 
-#### 知识点
+
 
 ![](assets/同步通讯.png)
 
@@ -1050,7 +929,7 @@ void EXIT(int sig)
 
 //主进程只负责接收确认报文
 
-###### 知识点
+
 
 ![](assets/异步通讯-1719739143375-13.png)
 
@@ -1121,9 +1000,8 @@ void EXIT(int sig)
 
 //发送文件过程中检测是否有确认报文，若有就循环接收，否则继续发送文件。
 
-###### 知识点
 
-代码  demo10.cpp
+
 
 ```cpp
 //I/O复用版本的异步通讯的客户端程序。 1000000个报文 8s
